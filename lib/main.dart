@@ -342,8 +342,13 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.white, width: 2.0)),
-          borderRadius: BorderRadius.all(Radius.elliptical(190, 60)),
+          border: Border(
+            top: BorderSide(color: Colors.white, width: 2.0),
+            bottom: BorderSide.none,
+            right: BorderSide.none,
+            left: BorderSide.none,
+          ),
+          borderRadius: BorderRadius.all(Radius.elliptical(2050, 400)),
         ),
         padding: EdgeInsets.only(top: 15.0, bottom: 10),
         child: BottomNavigationBar(
