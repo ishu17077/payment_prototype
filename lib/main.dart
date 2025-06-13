@@ -141,11 +141,11 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Column(
                           children: [
                             Text(creditCardNo.substring(0, 4)),
-                            SizedBox(height: 5.8),
+                            SizedBox(height: 5.0),
                             Text(creditCardNo.substring(4, 8)),
-                            SizedBox(height: 5.8),
+                            SizedBox(height: 5.0),
                             Text(creditCardNo.substring(8, 12)),
-                            SizedBox(height: 5.8),
+                            SizedBox(height: 5.0),
                             Text(creditCardNo.substring(12, 16)),
                           ],
                         ),
@@ -259,6 +259,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
 
                       IgnorePointer(
+                        ignoring: !isCardCovered,
                         child: AnimatedOpacity(
                           duration: Duration(seconds: 1),
                           opacity: isCardCovered ? 1.0 : 0.0,
@@ -284,6 +285,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     onPressed: () {
                       setState(() {
+                        isCVVVisible = false;
                         isCardCovered = !isCardCovered;
                       });
                     },
