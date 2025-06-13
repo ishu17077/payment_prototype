@@ -257,12 +257,17 @@ class _MyHomePageState extends State<MyHomePage> {
                         right: 10,
                         child: Image.asset("assets/images/rupay.png", scale: 2),
                       ),
-                      isCardCovered
-                          ? Image.asset(
+
+                      IgnorePointer(
+                        child: AnimatedOpacity(
+                          duration: Duration(seconds: 1),
+                          opacity: isCardCovered ? 1.0 : 0.0,
+                          child: Image.asset(
                             "assets/images/card_cover.png",
                             height: 300,
-                          )
-                          : SizedBox(),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(width: 10),
