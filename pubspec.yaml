@@ -37,6 +37,7 @@ dependencies:
   flutter_svg: ^2.1.0
   faded_text: ^0.0.11
   fluttertoast: ^8.2.12
+  local_auth: ^2.3.0
 
 dev_dependencies:
   flutter_test:

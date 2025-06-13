@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:local_auth/error_codes.dart' as auth_error;
 
 void main() {
   runApp(const MyApp());
@@ -66,11 +68,25 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool isCVVVisible = false;
-  bool isCardCovered = false;
-  String creditCardNo = "5105105105105100";
-  String expiryDate = "01/28";
-  int cvv = 239;
+  final LocalAuthentication auth = LocalAuthentication();
+  bool _isCVVVisible = false;
+  bool _isCardCovered = true;
+  bool _canAuthenticate = false;
+  bool _canAuthenticateWithBiometrics = false;
+  final String _creditCardNo = "5105105105105100";
+  final String _expiryDate = "01/28";
+  final int _cvv = 239;
+
+  @override
+  void initState() {
+    auth.canCheckBiometrics.then((value) async {
+      _canAuthenticateWithBiometrics = value;
+      _canAuthenticate =
+          _canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+    });
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -140,13 +156,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         left: 25,
                         child: Column(
                           children: [
-                            Text(creditCardNo.substring(0, 4)),
+                            Text(_creditCardNo.substring(0, 4)),
                             SizedBox(height: 5.0),
-                            Text(creditCardNo.substring(4, 8)),
+                            Text(_creditCardNo.substring(4, 8)),
                             SizedBox(height: 5.0),
-                            Text(creditCardNo.substring(8, 12)),
+                            Text(_creditCardNo.substring(8, 12)),
                             SizedBox(height: 5.0),
-                            Text(creditCardNo.substring(12, 16)),
+                            Text(_creditCardNo.substring(12, 16)),
                           ],
                         ),
                       ),
@@ -164,7 +180,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 fontSize: 10.0,
                               ),
                             ),
-                            Text("01/28", style: TextStyle(fontSize: 14.0)),
+                            Text(_expiryDate, style: TextStyle(fontSize: 14.0)),
                           ],
                         ),
                       ),
@@ -191,11 +207,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                   width: 40,
                                   height: 30,
                                   child: FadedText(
-                                    isCVVVisible ? cvv.toString() : "****",
+                                    _isCVVVisible ? _cvv.toString() : "****",
                                     maxLines: 1,
                                     style: TextStyle(
                                       color: Colors.white38,
-                                      letterSpacing: isCVVVisible ? 1.0 : 1.7,
+                                      letterSpacing: _isCVVVisible ? 1.0 : 1.7,
                                       fontFamily: 'DMSans',
                                       fontSize: 20,
                                     ),
@@ -204,7 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 IconButton(
                                   onPressed: () {
                                     setState(() {
-                                      isCVVVisible = !isCVVVisible;
+                                      _isCVVVisible = !_isCVVVisible;
                                     });
                                   },
                                   icon: Icon(
@@ -224,7 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: IconButton(
                           onPressed: () async {
                             await Clipboard.setData(
-                              ClipboardData(text: creditCardNo),
+                              ClipboardData(text: _creditCardNo),
                             ).then((_) {
                               Fluttertoast.showToast(
                                 backgroundColor: Colors.black,
@@ -259,10 +275,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
 
                       IgnorePointer(
-                        ignoring: !isCardCovered,
+                        ignoring: !_isCardCovered,
                         child: AnimatedOpacity(
                           duration: Duration(seconds: 1),
-                          opacity: isCardCovered ? 1.0 : 0.0,
+                          opacity: _isCardCovered ? 1.0 : 0.0,
                           child: Image.asset(
                             "assets/images/card_cover.png",
                             height: 300,
@@ -283,11 +299,60 @@ class _MyHomePageState extends State<MyHomePage> {
                         Colors.transparent,
                       ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        isCVVVisible = false;
-                        isCardCovered = !isCardCovered;
-                      });
+                    onPressed: () async {
+                      if (!_isCardCovered) {
+                        setState(() {
+                          _isCVVVisible = false;
+                          _isCardCovered = !_isCardCovered;
+                        });
+                        return;
+                      }
+                      bool didAuthenticate = false;
+                      try {
+                        didAuthenticate = await auth.authenticate(
+                          localizedReason:
+                              "Please authenticate to show card details",
+                          options: AuthenticationOptions(
+                            useErrorDialogs: false,
+                          ),
+                        );
+                      } on PlatformException catch (e) {
+                        if (!mounted) return;
+                        if (e.code == auth_error.notAvailable) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.black54,
+                              content: Text("No Authentication Method found!"),
+                            ),
+                          );
+                        } else if (e.code == auth_error.notEnrolled) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.black54,
+                              content: Text(
+                                "No Fingerprint/Face method enrolled in device",
+                              ),
+                            ),
+                          );
+                        } else {
+                          print(e.code);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.black54,
+                              content: Text(
+                                "Something went wrong please try again!",
+                              ),
+                            ),
+                          );
+                        }
+                      }
+
+                      didAuthenticate
+                          ? setState(() {
+                            _isCVVVisible = false;
+                            _isCardCovered = !_isCardCovered;
+                          })
+                          : null;
                     },
                     child: Column(
                       children: [
@@ -296,7 +361,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border:
-                                isCardCovered
+                                _isCardCovered
                                     ? Border(
                                       right: BorderSide(
                                         color: Colors.red[900] ?? Colors.red,
@@ -320,7 +385,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           child: Icon(
                             Icons.sunny,
                             color:
-                                isCardCovered
+                                _isCardCovered
                                     ? Colors.red[900] ?? Colors.red
                                     : Colors.white,
                           ),
@@ -329,10 +394,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         SizedBox(
                           width: 70,
                           child: Text(
-                            isCardCovered ? " unfreeze" : "   freeze",
+                            _isCardCovered ? " unfreeze" : "   freeze",
                             style: TextStyle(
                               color:
-                                  isCardCovered
+                                  _isCardCovered
                                       ? Colors.red[900]
                                       : Colors.white,
                             ),
